@@ -1,4 +1,4 @@
-module github.com/Iwinswap/iwinswap-token-system
+module github.com/Iwinswap/iwinswap-erc20-token-system
 
 go 1.24.2
 

@@ -6,7 +6,7 @@ A high-performance, concurrency-safe, in-memory registry for blockchain token me
 
 ## Overview
 
-The Iwinswap Token System provides a robust and highly efficient way to manage collections of ERC20-like token data. It is designed from the ground up for performance-critical applications that require safe, concurrent access to token metadata without sacrificing speed.
+The Iwinswap ERC20 Token System provides a robust and highly efficient way to manage collections of ERC20-like token data. It is designed from the ground up for performance-critical applications that require safe, concurrent access to token metadata without sacrificing speed.
 
 The system is built on a Data-Oriented Design (DOD) core for maximum efficiency, wrapped in a thread-safe service layer for ease of use and safety.
 
