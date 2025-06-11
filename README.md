@@ -37,7 +37,7 @@ The system is built on a Data-Oriented Design (DOD) core for maximum efficiency,
 ## Installation
 
 ```bash
-go get github.com/Iwinswap/iwinswap-token-analyzer
+go get github.com/Iwinswap/iwinswap-erc20-token-system
 ```
 
 ---
