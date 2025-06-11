@@ -53,7 +53,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Iwinswap/iwinswap-token-analyzer/token"
+	"github.com/Iwinswap/iwinswap-erc20-token-system"
 	"github.com/ethereum/go-ethereum/common"
 )
 
