@@ -1,6 +1,6 @@
-# Iwinswap Token System
+# Iwinswap ERC20 Token System
 
-A high-performance, concurrency-safe, in-memory registry for blockchain token metadata in Go.
+A high-performance, concurrency-safe, in-memory registry for ERC20 token metadata in Go.
 
 ---
 
