@@ -15,13 +15,13 @@ var (
 
 // TokenView is a safe, structured representation of a token's data for external use.
 type TokenView struct {
-	ID                   uint64
-	Address              common.Address
-	Name                 string
-	Symbol               string
-	Decimals             uint8
-	FeeOnTransferPercent float64
-	GasForTransfer       uint64
+	ID                   uint64         `json:"id"`
+	Address              common.Address `json:"address"`
+	Name                 string         `json:"name"`
+	Symbol               string         `json:"symbol"`
+	Decimals             uint8          `json:"decimals"`
+	FeeOnTransferPercent float64        `json:"feeOnTransferPercent"`
+	GasForTransfer       uint64         `json:"gasForTransfer"`
 }
 
 // TokenRegistry manages a collection of token data using a Struct-of-Arrays layout.
