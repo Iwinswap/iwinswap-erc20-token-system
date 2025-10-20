@@ -2,6 +2,7 @@ package token
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -11,6 +12,11 @@ var (
 	ErrTokenNotFound = errors.New("token not found")
 	// ErrAlreadyExists is returned when trying to add a token that is already in the registry.
 	ErrAlreadyExists = errors.New("token already exists")
+
+	// ErrDuplicateID is returned by NewTokenRegistryFromView when the input data contains duplicate token IDs.
+	ErrDuplicateID = errors.New("invalid view: duplicate token ID")
+	// ErrDuplicateAddress is returned by NewTokenRegistryFromView when the input data contains duplicate token addresses.
+	ErrDuplicateAddress = errors.New("invalid view: duplicate token address")
 )
 
 // TokenView is a safe, structured representation of a token's data for external use.
@@ -57,6 +63,55 @@ func NewTokenRegistry() *TokenRegistry {
 		idToIndex:   make(map[uint64]int),
 		addressToID: make(map[common.Address]uint64),
 	}
+}
+
+// NewTokenRegistryFromViews reconstructs a TokenRegistry from a slice of TokenView structs.
+// It performs critical validation to ensure the input data is consistent, returning an
+// error if any duplicate IDs or addresses are found.
+func NewTokenRegistryFromViews(views []TokenView) (*TokenRegistry, error) {
+	numTokens := len(views)
+
+	registry := &TokenRegistry{
+		address:              make([]common.Address, numTokens),
+		name:                 make([]string, numTokens),
+		symbol:               make([]string, numTokens),
+		decimals:             make([]uint8, numTokens),
+		feeOnTransferPercent: make([]float64, numTokens),
+		gasForTransfer:       make([]uint64, numTokens),
+		id:                   make([]uint64, numTokens),
+		idToIndex:            make(map[uint64]int, numTokens),
+		addressToID:          make(map[common.Address]uint64, numTokens),
+		nextID:               1,
+	}
+
+	var maxID uint64 = 0
+	for i, view := range views {
+		// --- Validation Step ---
+		if _, exists := registry.idToIndex[view.ID]; exists {
+			return nil, fmt.Errorf("%w: %d", ErrDuplicateID, view.ID)
+		}
+		if _, exists := registry.addressToID[view.Address]; exists {
+			return nil, fmt.Errorf("%w: %s", ErrDuplicateAddress, view.Address.Hex())
+		}
+
+		// --- Populate Slices and Maps ---
+		registry.address[i] = view.Address
+		registry.name[i] = view.Name
+		registry.symbol[i] = view.Symbol
+		registry.decimals[i] = view.Decimals
+		registry.feeOnTransferPercent[i] = view.FeeOnTransferPercent
+		registry.gasForTransfer[i] = view.GasForTransfer
+		registry.id[i] = view.ID
+		registry.idToIndex[view.ID] = i
+		registry.addressToID[view.Address] = view.ID
+
+		if view.ID > maxID {
+			maxID = view.ID
+		}
+	}
+
+	registry.nextID = maxID + 1
+	return registry, nil
 }
 
 // AddToken adds a new token to the registry and assigns it a new, permanent ID.

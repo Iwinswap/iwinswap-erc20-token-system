@@ -12,6 +12,98 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestTokenSystem_Methods provides a basic sanity check of the TokenSystem's wrapper methods.
+// It ensures that the mutex-protected operations correctly delegate to the underlying registry
+// in a simple, sequential workflow.
+func TestTokenSystem_Methods(t *testing.T) {
+	t.Parallel()
+	ts := NewTokenSystem()
+
+	// State variables to be used across sub-tests
+	var tokenID uint64
+	tokenAddr := addr(1)
+	var err error
+
+	t.Run("Add Token", func(t *testing.T) {
+		tokenID, err = ts.AddToken(tokenAddr, "Token A", "TKA", 18)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(1), tokenID)
+
+		// Test adding a duplicate
+		_, err = ts.AddToken(tokenAddr, "Token A", "TKA", 18)
+		assert.ErrorIs(t, err, ErrAlreadyExists)
+	})
+
+	// Ensure the ID was set before proceeding to tests that depend on it.
+	require.NotZero(t, tokenID, "tokenID should have been set in the Add Token sub-test")
+
+	t.Run("Get Token", func(t *testing.T) {
+		view, err := ts.GetTokenByID(tokenID)
+		require.NoError(t, err)
+		assert.Equal(t, "Token A", view.Name)
+
+		view, err = ts.GetTokenByAddress(tokenAddr)
+		require.NoError(t, err)
+		assert.Equal(t, "Token A", view.Name)
+	})
+
+	t.Run("Update Token", func(t *testing.T) {
+		err = ts.UpdateToken(tokenID, 5.0, 25000)
+		require.NoError(t, err)
+		updatedView, err := ts.GetTokenByID(tokenID)
+		require.NoError(t, err)
+		assert.Equal(t, 5.0, updatedView.FeeOnTransferPercent)
+		assert.Equal(t, uint64(25000), updatedView.GasForTransfer)
+	})
+
+	t.Run("View System", func(t *testing.T) {
+		allViews := ts.View()
+		require.Len(t, allViews, 1)
+		assert.Equal(t, "Token A", allViews[0].Name)
+	})
+
+	t.Run("Delete Token", func(t *testing.T) {
+		err = ts.DeleteToken(tokenID)
+		require.NoError(t, err)
+
+		// Verify deletion by checking getters and the main view
+		_, err = ts.GetTokenByID(tokenID)
+		assert.ErrorIs(t, err, ErrTokenNotFound)
+		assert.Empty(t, ts.View())
+	})
+}
+
+func TestNewTokenSystemFromViews(t *testing.T) {
+	t.Parallel()
+	t.Run("Success", func(t *testing.T) {
+		views := []TokenView{
+			{ID: 10, Address: addr(10), Name: "Token X"},
+			{ID: 20, Address: addr(20), Name: "Token Y"},
+		}
+
+		ts, err := NewTokenSystemFromViews(views)
+		require.NoError(t, err)
+		require.NotNil(t, ts)
+
+		// Verify the contents by using the concurrency-safe getter
+		view, err := ts.GetTokenByID(20)
+		require.NoError(t, err)
+		assert.Equal(t, "Token Y", view.Name)
+	})
+
+	t.Run("FailureOnInvalidView", func(t *testing.T) {
+		views := []TokenView{
+			{ID: 1, Address: addr(1)},
+			{ID: 1, Address: addr(2)}, // Duplicate ID
+		}
+
+		ts, err := NewTokenSystemFromViews(views)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrDuplicateID)
+		assert.Nil(t, ts)
+	})
+}
+
 // TestTokenSystem_StressConcurrent is a more chaotic and realistic concurrency test.
 // It simulates a mixed workload of reads, adds, updates, and deletes.
 // Run with `go test -race` to detect race conditions.

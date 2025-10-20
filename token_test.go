@@ -137,6 +137,69 @@ func TestUpdateToken(t *testing.T) {
 	err = updateToken(999, 1.0, 100, registry)
 	assert.ErrorIs(t, err, ErrTokenNotFound, "should return an error for a non-existent token")
 }
+
+func TestNewTokenRegistryFromViews(t *testing.T) {
+	t.Parallel()
+	t.Run("SuccessWithValidView", func(t *testing.T) {
+		// Use non-sequential IDs to test the maxID logic
+		views := []TokenView{
+			{ID: 1, Address: addr(1), Name: "Token A"},
+			{ID: 5, Address: addr(5), Name: "Token E"},
+			{ID: 3, Address: addr(3), Name: "Token C"},
+		}
+
+		registry, err := NewTokenRegistryFromViews(views)
+		require.NoError(t, err)
+		require.NotNil(t, registry)
+
+		assert.Len(t, registry.address, 3)
+		assert.Len(t, registry.idToIndex, 3)
+		assert.Len(t, registry.addressToID, 3)
+
+		// Check that nextID is correctly set to maxID + 1
+		assert.Equal(t, uint64(6), registry.nextID)
+
+		// Verify internal mapping is correct
+		viewE, err := getTokenByID(5, registry)
+		require.NoError(t, err)
+		assert.Equal(t, "Token E", viewE.Name)
+	})
+
+	t.Run("SuccessWithEmptyView", func(t *testing.T) {
+		registry, err := NewTokenRegistryFromViews([]TokenView{})
+		require.NoError(t, err)
+		require.NotNil(t, registry)
+
+		assert.Empty(t, registry.address)
+		assert.Empty(t, registry.idToIndex)
+		assert.Equal(t, uint64(1), registry.nextID)
+	})
+
+	t.Run("FailureOnDuplicateID", func(t *testing.T) {
+		views := []TokenView{
+			{ID: 1, Address: addr(1)},
+			{ID: 2, Address: addr(2)},
+			{ID: 1, Address: addr(3)}, // Duplicate ID
+		}
+
+		_, err := NewTokenRegistryFromViews(views)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrDuplicateID)
+	})
+
+	t.Run("FailureOnDuplicateAddress", func(t *testing.T) {
+		views := []TokenView{
+			{ID: 1, Address: addr(1)},
+			{ID: 2, Address: addr(2)},
+			{ID: 3, Address: addr(1)}, // Duplicate Address
+		}
+
+		_, err := NewTokenRegistryFromViews(views)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrDuplicateAddress)
+	})
+}
+
 func TestGetters(t *testing.T) {
 	t.Parallel()
 	registry, ids := newTestRegistry(t)

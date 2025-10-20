@@ -21,6 +21,16 @@ func NewTokenSystem() *TokenSystem {
 	}
 }
 
+func NewTokenSystemFromViews(view []TokenView) (*TokenSystem, error) {
+	registry, err := NewTokenRegistryFromViews(view)
+	if err != nil {
+		return nil, err
+	}
+	return &TokenSystem{
+		registry: registry,
+	}, nil
+}
+
 // AddToken adds a token to the registry in a thread-safe manner.
 // It acquires a full write lock.
 func (ts *TokenSystem) AddToken(addr common.Address, name, symbol string, decimals uint8) (uint64, error) {
